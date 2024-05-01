@@ -1,0 +1,18 @@
+version: '3.3'
+
+services:
+  book_db:
+    container_name: book_db
+    image: postgres:14.4
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: books
+    ports:
+      - '6432:5432'

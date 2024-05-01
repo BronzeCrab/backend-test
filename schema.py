@@ -19,7 +19,6 @@ class Context(BaseContext):
         self.db = db
 
 
-
 @strawberry.type
 class Author:
     name: str
@@ -44,9 +43,18 @@ class Query:
     ) -> list[Book]:
         # TODO:
         # Do NOT use dataloaders
-        await info.context.db.execute("select 1")
-        return []
-
+        if author_ids:
+            records = await info.context.db.fetch_all(
+                f"select books.title, authors.name from books inner join authors on books.author_id=authors.id where authors.id in {tuple(author_ids)};"
+            )
+        else:
+            records = await info.context.db.fetch_all(
+                "select books.title, authors.name from books inner join authors on books.author_id=authors.id;"
+            )
+        return [
+            Book(title=record.title, author=Author(name=record.name))
+            for record in records
+        ]
 
 
 CONN_TEMPLATE = "postgresql+asyncpg://{user}:{password}@{host}:{port}/{name}"
@@ -61,6 +69,7 @@ db = Database(
     ),
 )
 
+
 @asynccontextmanager
 async def lifespan(
     app: FastAPI,
@@ -69,6 +78,7 @@ async def lifespan(
     async with db:
         yield
     await db.disconnect()
+
 
 schema = strawberry.Schema(query=Query)
 graphql_app = GraphQLRouter(  # type: ignore
